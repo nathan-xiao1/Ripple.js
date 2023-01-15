@@ -23,6 +23,3 @@ node_modules
 
 # Users Environment Variables
 .lock-wscript
-
-# Build files
-dist

@@ -52,8 +52,6 @@ export function ripple(selector: string, _options: RippleOptions = {}) {
       ...dataset,
     };
 
-    console.log(options);
-
     this.classList.add('has-ripple');
 
     // Create the ripple element
@@ -153,9 +151,7 @@ export function ripple(selector: string, _options: RippleOptions = {}) {
        * performance. We don't do this on single ripples because once it has rendered, we only
        * need to trigger paints thereafter.
        */
-      console.log('options.multi:', options.multi);
       if (options.multi) {
-        console.log('Waiting for animation end');
         log('Set: Ripple animationend event');
 
         'animationend webkitAnimationEnd oanimationend MSAnimationEnd'
@@ -167,8 +163,6 @@ export function ripple(selector: string, _options: RippleOptions = {}) {
                 () => {
                   log('Note: Ripple animation ended');
                   log('Destroy: Ripple');
-                  console.log('rippleElement:', rippleElement);
-
                   rippleElement && this.removeChild(rippleElement);
                 },
                 {
