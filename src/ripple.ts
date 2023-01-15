@@ -25,17 +25,23 @@ export function ripple(selector: string, _options: RippleOptions = {}) {
   };
 
   // Callback to create the ripple effect
-  const trigger = (event: MouseEvent, element: HTMLElement) => {
+  const trigger = function (
+    this: HTMLElement,
+    event: MouseEvent,
+    sharedOptions: RippleOptions
+  ) {
     let rippleElement: HTMLElement | undefined;
 
+    // Get data-* from the element
     const dataset = Object.fromEntries(
-      Object.entries(element.dataset).map(([key, value]) => {
-        if (
-          value &&
-          defaults[key as keyof RippleOptions] &&
-          typeof defaults[key as keyof RippleOptions] === 'number'
-        ) {
-          return [key, parseFloat(value)];
+      Object.entries(this.dataset).map(([key, value]) => {
+        const _key = key as keyof RippleOptions;
+        if (value && defaults[_key] !== null && defaults[_key] !== undefined) {
+          if (typeof defaults[_key] === 'number') {
+            return [key, parseFloat(value)];
+          } else if (typeof defaults[_key] === 'boolean') {
+            return [key, value === 'true'];
+          }
         }
         return [key, value];
       })
@@ -46,24 +52,24 @@ export function ripple(selector: string, _options: RippleOptions = {}) {
       ...dataset,
     };
 
-    console.log('Options:', options);
+    console.log(options);
 
-    element.classList.add('has-ripple');
+    this.classList.add('has-ripple');
 
     // Create the ripple element
     if (
       options.multi ||
-      (!options.multi && !element.querySelector('.ripple'))
+      (!options.multi && this.querySelectorAll('.ripple').length === 0)
     ) {
       rippleElement = document.createElement('span');
       rippleElement.classList.add('ripple');
-      element.appendChild(rippleElement);
+      this.appendChild(rippleElement);
 
       log('Create: Ripple');
 
       // Set ripple size
       if (!rippleElement.clientHeight && !rippleElement.clientWidth) {
-        const size = Math.max(element.offsetWidth, element.offsetHeight);
+        const size = Math.max(this.offsetWidth, this.offsetHeight);
         rippleElement.style.height = `${size}px`;
         rippleElement.style.width = `${size}px`;
         log('Set: Ripple size');
@@ -93,9 +99,7 @@ export function ripple(selector: string, _options: RippleOptions = {}) {
 
       // Set the color and opacity
       const color =
-        options.color == 'auto'
-          ? getComputedStyle(element).color
-          : options.color;
+        options.color == 'auto' ? getComputedStyle(this).color : options.color;
 
       const css: Pick<
         CSSStyleDeclaration,
@@ -123,8 +127,7 @@ export function ripple(selector: string, _options: RippleOptions = {}) {
     // Ensure we always have the ripple element
     if (!options.multi) {
       log('Set Ripple Element');
-      rippleElement =
-        element.querySelector<HTMLElement>('.ripple') ?? undefined;
+      rippleElement = this.querySelector<HTMLElement>('.ripple') ?? undefined;
     }
 
     if (rippleElement) {
@@ -133,15 +136,15 @@ export function ripple(selector: string, _options: RippleOptions = {}) {
       rippleElement.classList.remove('ripple-animate');
 
       // Retrieve coordinates
-      const elementRect = element.getBoundingClientRect();
+      const elementRect = this.getBoundingClientRect();
       const x =
         event.pageX -
-        elementRect.left +
+        elementRect.left -
         window.scrollX -
         rippleElement.clientWidth / 2;
       const y =
         event.pageY -
-        elementRect.top +
+        elementRect.top -
         window.scrollY -
         rippleElement.clientHeight / 2;
 
@@ -150,20 +153,29 @@ export function ripple(selector: string, _options: RippleOptions = {}) {
        * performance. We don't do this on single ripples because once it has rendered, we only
        * need to trigger paints thereafter.
        */
+      console.log('options.multi:', options.multi);
       if (options.multi) {
+        console.log('Waiting for animation end');
         log('Set: Ripple animationend event');
 
-        rippleElement.addEventListener(
-          'animationend webkitAnimationEnd oanimationend MSAnimationEnd',
-          function () {
-            log('Note: Ripple animation ended');
-            log('Destroy: Ripple');
-            element.remove();
-          },
-          {
-            once: true,
-          }
-        );
+        'animationend webkitAnimationEnd oanimationend MSAnimationEnd'
+          .split(' ')
+          .forEach((animationEndEvent) => {
+            rippleElement &&
+              rippleElement.addEventListener(
+                animationEndEvent,
+                () => {
+                  log('Note: Ripple animation ended');
+                  log('Destroy: Ripple');
+                  console.log('rippleElement:', rippleElement);
+
+                  rippleElement && this.removeChild(rippleElement);
+                },
+                {
+                  once: true,
+                }
+              );
+          });
       }
 
       // Set position and animate
@@ -175,9 +187,11 @@ export function ripple(selector: string, _options: RippleOptions = {}) {
     }
   };
 
-  document.addEventListener(sharedOptions.on, (event) => {
-    if (event.target instanceof HTMLElement && event.target.closest(selector)) {
-      trigger.call(null, event, event.target);
+  document.querySelectorAll(selector).forEach((element) => {
+    if (element instanceof HTMLElement) {
+      element.addEventListener(sharedOptions.on, (event) =>
+        trigger.call(element, event, sharedOptions)
+      );
     }
   });
 
