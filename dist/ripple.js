@@ -1,139 +1,125 @@
-/*! Ripple.js v1.2.1
- * The MIT License (MIT)
- * Copyright (c) 2014 Jacob Kelley */
-
-;(function($, document, Math){
-    $.ripple = function(selector, options) {
-
-        var self = this;
-
-        var _log = self.log = function() {
-            if(self.defaults.debug && console && console.log) {
-                console.log.apply(console, arguments);
+const defaults = {
+    debug: false,
+    on: 'mousedown',
+    opacity: 0.4,
+    color: 'auto',
+    multi: false,
+    duration: 0.7,
+    rate: (pxPerSecond) => pxPerSecond,
+    easing: 'linear',
+};
+export function ripple(selector, _options = {}) {
+    const options = Object.assign(Object.assign({}, defaults), _options);
+    // Find the element to attach to
+    const element = document.querySelector(selector);
+    if (!element) {
+        return console.error(`Failed to find '${selector}'`);
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const log = (...args) => {
+        if (options.debug && console && console.log) {
+            console.log(...args);
+        }
+    };
+    // Callback to create the ripple effect
+    const trigger = (event) => {
+        var _a;
+        let rippleElement;
+        element.classList.add('has-ripple');
+        // Create the ripple element
+        if (options.multi ||
+            (!options.multi && !element.querySelector('.ripple'))) {
+            rippleElement = document.createElement('span');
+            rippleElement.classList.add('ripple');
+            element.appendChild(rippleElement);
+            log('Create: Ripple');
+            // Set ripple size
+            if (!rippleElement.clientHeight && !rippleElement.clientWidth) {
+                const size = Math.max(element.offsetWidth, element.offsetHeight);
+                rippleElement.style.height = `${size}px`;
+                rippleElement.style.width = `${size}px`;
+                log('Set: Ripple size');
             }
-        };
-
-        self.selector = selector;
-        self.defaults = {
-            debug: false,
-            on: 'mousedown',
-
-            opacity: 0.4,
-            color: "auto",
-            multi: false,
-
-            duration: 0.7,
-            rate: function(pxPerSecond) {
-                return pxPerSecond;
-            },
-
-            easing: 'linear'
-        };
-
-        self.defaults = $.extend({}, self.defaults, options);
-
-        var Trigger = function(e) {
-
-            var $this = $(this);
-            var $ripple;
-            var settings;
-
-            $this.addClass('has-ripple');
-
-            // This instances settings
-            settings = $.extend({}, self.defaults, $this.data());
-
-            // Create the ripple element
-            if ( settings.multi || (!settings.multi && $this.find(".ripple").length === 0) ) {
-                $ripple = $("<span></span>").addClass("ripple");
-                $ripple.appendTo($this);
-
-                _log('Create: Ripple');
-
-                // Set ripple size
-                if (!$ripple.height() && !$ripple.width()) {
-                    var size = Math.max($this.outerWidth(), $this.outerHeight());
-                    $ripple.css({
-                        height: size,
-                        width: size
+            // Give the user the ability to change the rate of the animation
+            // based on element width
+            if (options.rate && typeof options.rate == 'function') {
+                // rate = pixels per second
+                const rate = Math.round(rippleElement.clientWidth / options.duration);
+                // new amount of pixels per second
+                const filteredRate = options.rate(rate);
+                // Determine the new duration for the animation
+                const newDuration = rippleElement.clientWidth / filteredRate;
+                // Set the new duration if it has not changed
+                if (options.duration.toFixed(2) !== newDuration.toFixed(2)) {
+                    log('Update: Ripple Duration', {
+                        from: options.duration,
+                        to: newDuration,
                     });
-                    _log('Set: Ripple size');
+                    options.duration = newDuration;
                 }
-
-                // Give the user the ability to change the rate of the animation
-                // based on element width
-                if(settings.rate && typeof settings.rate == "function") {
-
-                    // rate = pixels per second
-                    var rate = Math.round( $ripple.width() / settings.duration );
-
-                    // new amount of pixels per second
-                    var filteredRate = settings.rate(rate);
-
-                    // Determine the new duration for the animation
-                    var newDuration = ( $ripple.width() / filteredRate);
-
-                    // Set the new duration if it has not changed
-                    if(settings.duration.toFixed(2) !== newDuration.toFixed(2)) {
-                        _log('Update: Ripple Duration', {
-                            from: settings.duration,
-                            to: newDuration
-                        });
-                        settings.duration = newDuration;
-                    }
+            }
+            // Set the color and opacity
+            const color = options.color == 'auto'
+                ? getComputedStyle(element).color
+                : options.color;
+            const css = {
+                animationDuration: `${options.duration.toString()}s`,
+                animationTimingFunction: options.easing,
+                background: color,
+                opacity: options.opacity.toString(),
+            };
+            if (rippleElement) {
+                for (const [key, value] of Object.entries(css)) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    rippleElement.style[key] = value;
                 }
-
-                // Set the color and opacity
-                var color = (settings.color == "auto") ? $this.css('color') : settings.color;
-                var css = {
-                    animationDuration: (settings.duration).toString() + 's',
-                    animationTimingFunction: settings.easing,
-                    background: color,
-                    opacity: settings.opacity
-                };
-
-                _log('Set: Ripple CSS', css);
-                $ripple.css(css);
+                log('Set: Ripple CSS', css);
             }
-
-            // Ensure we always have the ripple element
-            if(!settings.multi) {
-                _log('Set: Ripple Element');
-                $ripple = $this.find(".ripple");
-            }
-
+        }
+        // Ensure we always have the ripple element
+        if (!options.multi) {
+            log('Set Ripple Element');
+            rippleElement =
+                (_a = element.querySelector('.ripple')) !== null && _a !== void 0 ? _a : undefined;
+        }
+        if (rippleElement) {
             // Kill animation
-            _log('Destroy: Ripple Animation');
-            $ripple.removeClass("ripple-animate");
-
-
+            log('Destroy: Ripple Animation');
+            rippleElement.classList.remove('ripple-animate');
             // Retrieve coordinates
-            var x = e.pageX - $this.offset().left - $ripple.width() / 2;
-            var y = e.pageY - $this.offset().top - $ripple.height() / 2;
-
+            const elementRect = element.getBoundingClientRect();
+            const x = event.pageX -
+                elementRect.left +
+                window.scrollX -
+                rippleElement.clientWidth / 2;
+            const y = event.pageY -
+                elementRect.top +
+                window.scrollY -
+                rippleElement.clientHeight / 2;
             /**
              * We want to delete the ripple elements if we allow multiple so we dont sacrifice any page
              * performance. We don't do this on single ripples because once it has rendered, we only
              * need to trigger paints thereafter.
              */
-            if(settings.multi) {
-                _log('Set: Ripple animationend event');
-                $ripple.one('animationend webkitAnimationEnd oanimationend MSAnimationEnd', function() {
-                    _log('Note: Ripple animation ended');
-                    _log('Destroy: Ripple');
-                    $(this).remove();
+            if (options.multi) {
+                log('Set: Ripple animationend event');
+                rippleElement.addEventListener('animationend webkitAnimationEnd oanimationend MSAnimationEnd', function () {
+                    log('Note: Ripple animation ended');
+                    log('Destroy: Ripple');
+                    element.remove();
+                }, {
+                    once: true,
                 });
             }
-
             // Set position and animate
-            _log('Set: Ripple location');
-            _log('Set: Ripple animation');
-            $ripple.css({
-                top: y + 'px',
-                left: x + 'px'
-            }).addClass("ripple-animate");
-        };
-
-        $(document).on(self.defaults.on, self.selector, Trigger);
+            log('Set: Ripple location');
+            log('Set: Ripple animation');
+            rippleElement.style.top = `${y}px`;
+            rippleElement.style.left = `${x}px`;
+            rippleElement.classList.add('ripple-animate');
+        }
     };
-})(jQuery, document, Math);
+    element.addEventListener(options.on, trigger);
+}
+window.ripple = ripple;
+ripple('.area', { multi: true, debug: true });
