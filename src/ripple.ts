@@ -1,6 +1,6 @@
-import { Options } from './ripple.types';
+import { RippleOptions } from './ripple.types';
 
-const defaults: Required<Options> = {
+const defaults: Required<RippleOptions> = {
   debug: false,
   on: 'mousedown',
   opacity: 0.4,
@@ -11,28 +11,42 @@ const defaults: Required<Options> = {
   easing: 'linear',
 };
 
-export function ripple(selector: string, _options: Options = {}) {
-  const options = {
+export function ripple(selector: string, _options: RippleOptions = {}) {
+  const sharedOptions: Required<RippleOptions> = {
     ...defaults,
     ..._options,
   };
 
-  // Find the element to attach to
-  const element = document.querySelector<HTMLElement>(selector);
-  if (!element) {
-    return console.error(`Failed to find '${selector}'`);
-  }
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const log = (...args: any[]) => {
-    if (options.debug && console && console.log) {
+    if (sharedOptions.debug && console && console.log) {
       console.log(...args);
     }
   };
 
   // Callback to create the ripple effect
-  const trigger = (event: MouseEvent) => {
+  const trigger = (event: MouseEvent, element: HTMLElement) => {
     let rippleElement: HTMLElement | undefined;
+
+    const dataset = Object.fromEntries(
+      Object.entries(element.dataset).map(([key, value]) => {
+        if (
+          value &&
+          defaults[key as keyof RippleOptions] &&
+          typeof defaults[key as keyof RippleOptions] === 'number'
+        ) {
+          return [key, parseFloat(value)];
+        }
+        return [key, value];
+      })
+    );
+
+    const options: Required<RippleOptions> = {
+      ...sharedOptions,
+      ...dataset,
+    };
+
+    console.log('Options:', options);
 
     element.classList.add('has-ripple');
 
@@ -161,8 +175,11 @@ export function ripple(selector: string, _options: Options = {}) {
     }
   };
 
-  element.addEventListener(options.on, trigger);
-}
+  document.addEventListener(sharedOptions.on, (event) => {
+    if (event.target instanceof HTMLElement && event.target.closest(selector)) {
+      trigger.call(null, event, event.target);
+    }
+  });
 
-window.ripple = ripple;
-ripple('.area', { multi: true, debug: true });
+  return trigger;
+}

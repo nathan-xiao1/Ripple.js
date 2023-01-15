@@ -5,5 +5,3 @@ declare global {
     ripple: ripple;
   }
 }
-
-export {};

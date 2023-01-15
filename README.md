@@ -7,15 +7,7 @@ Adds Material style ripple to buttons
 ## Installation
 
 ```html
-<link href="stylesheet" type="text/css" href="ripple.min.css" />
-<script type="text/javascript" src="jquery.min.js"></script>
-<script type="text/javascript" src="ripple.min.js"></script>
-```
-
-or
-
-```bash
-$ bower install ripplejs
+npm install ripple.js
 ```
 
 ## Usage
@@ -23,39 +15,56 @@ $ bower install ripplejs
 Include jQuery, the ripple.css, and ripple.js into your page. Then upon initialization, you can activate ripple as follows:
 
 ```javascript
-$.ripple('.btn', {
-  debug: false, // Turn Ripple.js logging on/off
-  on: 'mousedown', // The event to trigger a ripple effect
+import { ripple } from 'ripple.js';
 
-  opacity: 0.4, // The opacity of the ripple
-  color: 'auto', // Set the background color. If set to "auto", it will use the text color
-  multi: false, // Allow multiple ripples per element
+ripple('.btn', options);
+```
 
-  duration: 0.7, // The duration of the ripple
+## Options
 
-  // Filter function for modifying the speed of the ripple
-  rate: function (pxPerSecond) {
-    return pxPerSecond;
-  },
+```javascript
+interface Options {
+  /* Set the background color. If set to "auto", it will use the text color */
+  color?: 'auto' | string;
 
-  easing: 'linear', // The CSS3 easing function of the ripple
-});
+  /* Turn Ripple.js logging on/off */
+  debug?: boolean;
+
+  /* The duration of the ripple */
+  duration?: number;
+
+  /* The CSS3 easing function of the ripple */
+  easing?: string;
+
+  /* Allow multiple ripples per element */
+  multi?: boolean;
+
+  /* The event to trigger a ripple effect */
+  on?: KeysOfType<HTMLElementEventMap, MouseEvent>;
+
+  /* The opacity of the ripple */
+  opacity?: number;
+
+  /* Filter function for modifying the speed of the ripple */
+  rate?: (rate: number) => number;
+}
 ```
 
 Elements can be overridden with their own default options:
 
 ```html
-<a href="#" data-duration="5" data-color="red" data-opacity="1"
-  >Slow Red Ripple</a
->
+<a href="#" data-duration="5" data-color="red" data-opacity="1">
+  Slow Red Ripple
+</a>
 ```
 
 ## Building
 
 ```bash
 $ npm install
-$ npm run-script build
-$ npm run-script build-watch # To watch assets
+$ npm run build
+# Or with watch mode
+$ npm run build:watch
 ```
 
 ## Caveats

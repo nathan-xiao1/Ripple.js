@@ -1,16 +1,27 @@
 {
-  "name": "Ripple.js",
+  "name": "ripple.js",
   "author": "Nathan Xiao",
-  "version": "1.2.1",
+  "contributors": [
+    {
+      "name": "Jacob Kelley",
+      "url": "https://github.com/jakiestfu"
+    }
+  ],
+  "version": "1.2.2",
   "repository": {
     "type": "git",
     "url": "https://github.com/nathan-xiao1/Ripple.js"
   },
+  "types": "index.d.ts",
+  "files": [
+    "/dist/*"
+  ],
   "scripts": {
+    "prepublish": "npm run build",
     "start": "npm run server",
-    "server": "http-server ./dist",
-    "build": "tsc",
-    "build:watch": "tsc-watch -p ./tsconfig.json",
+    "server": "http-server .",
+    "build": "tsc && cp src/ripple.css dist/",
+    "build:watch": "tsc-watch -p ./tsconfig.json --onsuccess 'cp src/ripple.css dist/'",
     "lint": "npm run eslint && npm run prettier",
     "eslint": "eslint .",
     "prettier": "prettier --write ."
